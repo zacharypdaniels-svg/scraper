@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Venue Saver">
+  <meta name="theme-color" content="#3b82f6">
+  <title>Venue Saver</title>
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlZlbnVlIFNhdmVyIiwKICAic2hvcnRfbmFtZSI6ICJWZW51ZXMiLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiI2Y1ZjVmNSIsCiAgInRoZW1lX2NvbG9yIjogIiMzYjgyZjYiCn0=">
+  
+  <!-- iOS Icons -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%233b82f6' width='100' height='100' rx='20'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>📍</text></svg>">
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    
+    .subtitle {
+      font-size: 13px;
+      color: #6b7280;
+    }
+    
+    .upload-area {
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      padding: 32px 16px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    
+    .upload-area.has-image {
+      border-color: #10b981;
+      padding: 16px;
+    }
+    
+    .upload-area.dragover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    
+    .preview-image {
+      max-height: 200px;
+      max-width: 100%;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-primary:active:not(:disabled) {
+      background: #2563eb;
+    }
+    
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+    
+    .btn-success:active:not(:disabled) {
+      background: #059669;
+    }
+    
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+    
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .btn-row .btn {
+      flex: 1;
+      margin-bottom: 0;
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .status {
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 12px;
+    }
+    
+    .status.error {
+      color: #dc2626;
+    }
+    
+    .status.success {
+      color: #10b981;
+    }
+    
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      border: 2px solid;
+    }
+    
+    .legend-dot.screenshot { border-color: #10b981; background: #d1fae5; }
+    .legend-dot.lookup { border-color: #3b82f6; background: #dbeafe; }
+    .legend-dot.missing { border-color: #ef4444; background: #fee2e2; }
+    
+    .field-group {
+      margin-bottom: 12px;
+    }
+    
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .field-label .required {
+      color: #ef4444;
+    }
+    
+    .field-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 2px solid #e5e7eb;
+      font-size: 14px;
+      transition: all 0.2s;
+      background: white;
+    }
+    
+    .field-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    
+    .field-input.screenshot {
+      border-color: #10b981;
+      background: #f0fdf4;
+    }
+    
+    .field-input.lookup {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    
+    .field-input.missing {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+    
+    .settings-toggle {
+      font-size: 13px;
+      color: #3b82f6;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px 0;
+    }
+    
+    .settings-panel {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #e5e7eb;
+    }
+    
+    .settings-panel.hidden {
+      display: none;
+    }
+    
+    .settings-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .copy-fallback {
+      margin-top: 12px;
+      padding: 12px;
+      background: #fefce8;
+      border: 1px solid #fde047;
+      border-radius: 8px;
+    }
+    
+    .copy-fallback textarea {
+      width: 100%;
+      padding: 8px;
+      font-size: 11px;
+      font-family: monospace;
+      border: 1px solid #fde047;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="card">
+      <h1>📍 Venue Saver</h1>
+      <p class="subtitle">Screenshot → Extract → Save to Google Sheets</p>
+      
+      <button class="settings-toggle" onclick="toggleSettings()">⚙️ Settings</button>
+      
+      <div id="settingsPanel" class="settings-panel hidden">
+        <label class="field-label">Google Apps Script URL</label>
+        <input type="url" id="webhookUrl" class="settings-input" 
+               placeholder="https://script.google.com/macros/s/..." 
+               onchange="saveSettings()">
+        <p style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+          Enter your deployed Apps Script URL to enable "Save to Sheets"
+        </p>
+      </div>
+    </div>
+    
+    <!-- Upload Area -->
+    <div class="card">
+      <div id="uploadArea" class="upload-area" 
+           ondrop="handleDrop(event)" 
+           ondragover="handleDragOver(event)" 
+           ondragleave="handleDragLeave(event)">
+        <div id="uploadPrompt">
+          <p style="font-size: 32px; margin-bottom: 8px;">📷</p>
+          <p style="color: #374151; margin-bottom: 12px;">Tap to upload or paste a screenshot</p>
+          <label class="btn btn-secondary" style="width: auto; display: inline-flex;">
+            Choose Photo
+            <input type="file" accept="image/*" class="file-input" onchange="handleFileSelect(event)">
+          </label>
+        </div>
+        <div id="previewContainer" class="hidden">
+          <img id="previewImage" class="preview-image" alt="Preview">
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="extractAndLookup()" id="extractBtn">
+              🔍 Extract & Lookup
+            </button>
+            <button class="btn btn-secondary" onclick="clearImage()" style="flex: 0.4;">✕</button>
+          </div>
+        </div>
+        <p id="statusText" class="status"></p>
+      </div>
+    </div>
+    
+    <!-- Legend -->
+    <div class="card">
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot screenshot"></div>
+          <span>Screenshot (<span id="screenshotCount">0</span>)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot lookup"></div>
+          <span>Web lookup (<span id="lookupCount">0</span>)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot missing"></div>
+          <span>Missing (<span id="missingCount">19</span>)</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Fields -->
+    <div class="card" id="fieldsCard">
+      <div id="fieldsContainer"></div>
+      
+      <div id="copyFallback" class="copy-fallback hidden">
+        <p style="font-size: 13px; color: #854d0e;">Tap to select, then copy manually:</p>
+        <textarea id="copyText" rows="3" readonly onclick="this.select()"></textarea>
+      </div>
+      
+      <div class="btn-row" style="margin-top: 16px;">
+        <button class="btn btn-primary" onclick="copyToClipboard()" id="copyBtn">
+          📋 Copy
+        </button>
+        <button class="btn btn-success" onclick="saveToSheets()" id="saveBtn">
+          💾 Save to Sheets
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Field definitions
+    const FIELDS = [
+      { key: 'city', label: 'City', example: 'Seoul', required: true },
+      { key: 'area', label: 'Area', example: 'Myeong-dong', required: true },
+      { key: 'name', label: 'Name', example: 'Ace Four Club', required: true },
+      { key: 'recommendedBy', label: 'Recommended By', example: 'Lonely Planet', required: false },
+      { key: 'primaryType', label: 'Primary Type', example: 'Drinks', required: true },
+      { key: 'secondaryType', label: 'Secondary Type', example: 'Drinks', required: false },
+      { key: 'subtype', label: 'Subtype', example: 'Cocktail bar', required: true },
+      { key: 'cost', label: 'Cost', example: '$$', required: false },
+      { key: 'description', label: 'Description', example: 'Cool cocktail bar', required: false },
+      { key: 'addressEnglish', label: 'Address (English)', example: '105 Euljiro, Jung-gu', required: true },
+      { key: 'addressLocal', label: 'Address (Local)', example: '서울 중구 을지로 105', required: true },
+      { key: 'phone', label: 'Phone', example: '82 10-4248-4244', required: false },
+      { key: 'googleMapsLink', label: 'Google Maps', example: 'https://maps.app.goo.gl/...', required: true },
+      { key: 'naverMapsLink', label: 'Naver Maps', example: 'https://map.naver.com/...', required: false },
+      { key: 'instagram', label: 'Instagram', example: 'https://instagram.com/...', required: false },
+      { key: 'website', label: 'Website', example: 'https://example.com', required: false },
+      { key: 'openingHours', label: 'Hours', example: 'M-F: 18:00-01:00', required: false },
+      { key: 'notes', label: 'Notes', example: 'Reservation required', required: false },
+      { key: 'bookingLink', label: 'Booking Link', example: 'https://catchtable.net/...', required: false },
+    ];
+    
+    // State
+    let data = {};
+    let fieldSource = {};
+    let imageBase64 = null;
+    
+    // Initialize
+    function init() {
+      FIELDS.forEach(f => {
+        data[f.key] = '';
+        fieldSource[f.key] = null;
+      });
+      renderFields();
+      loadSettings();
+      
+      // Handle paste anywhere
+      document.addEventListener('paste', handlePaste);
+    }
+    
+    function renderFields() {
+      const container = document.getElementById('fieldsContainer');
+      container.innerHTML = FIELDS.map(field => `
+        <div class="field-group">
+          <label class="field-label">
+            ${field.label}
+            ${field.required ? '<span class="required">*</span>' : ''}
+          </label>
+          <input type="text" 
+                 class="field-input ${getFieldClass(field.key)}"
+                 id="field_${field.key}"
+                 value="${data[field.key] || ''}"
+                 placeholder="${field.example}"
+                 onchange="handleFieldChange('${field.key}', this.value)">
+        </div>
+      `).join('');
+      
+      updateCounts();
+    }
+    
+    function getFieldClass(key) {
+      const value = data[key];
+      const source = fieldSource[key];
+      
+      if (!value) return 'missing';
+      if (source === 'screenshot') return 'screenshot';
+      if (source === 'lookup') return 'lookup';
+      return '';
+    }
+    
+    function updateCounts() {
+      const screenshot = Object.values(fieldSource).filter(s => s === 'screenshot').length;
+      const lookup = Object.values(fieldSource).filter(s => s === 'lookup').length;
+      const filled = FIELDS.filter(f => data[f.key]).length;
+      
+      document.getElementById('screenshotCount').textContent = screenshot;
+      document.getElementById('lookupCount').textContent = lookup;
+      document.getElementById('missingCount').textContent = FIELDS.length - filled;
+    }
+    
+    function handleFieldChange(key, value) {
+      data[key] = value;
+      if (value && !fieldSource[key]) {
+        fieldSource[key] = 'manual';
+      }
+      document.getElementById(`field_${key}`).className = `field-input ${getFieldClass(key)}`;
+      updateCounts();
+    }
+    
+    // Image handling
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (file) loadImage(file);
+    }
+    
+    function handlePaste(e) {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          loadImage(file);
+          e.preventDefault();
+          break;
+        }
+      }
+    }
+    
+    function handleDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file?.type.startsWith('image/')) {
+        loadImage(file);
+      }
+    }
+    
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('dragover');
+    }
+    
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('dragover');
+    }
+    
+    function loadImage(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target.result;
+        imageBase64 = dataUrl.split(',')[1];
+        
+        document.getElementById('previewImage').src = dataUrl;
+        document.getElementById('uploadPrompt').classList.add('hidden');
+        document.getElementById('previewContainer').classList.remove('hidden');
+        document.getElementById('uploadArea').classList.add('has-image');
+        setStatus('Image loaded. Tap "Extract & Lookup" to process.');
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    function clearImage() {
+      imageBase64 = null;
+      document.getElementById('previewImage').src = '';
+      document.getElementById('uploadPrompt').classList.remove('hidden');
+      document.getElementById('previewContainer').classList.add('hidden');
+      document.getElementById('uploadArea').classList.remove('has-image');
+      setStatus('');
+    }
+    
+    // Status
+    function setStatus(msg, type = '') {
+      const el = document.getElementById('statusText');
+      el.textContent = msg;
+      el.className = 'status ' + type;
+    }
+    
+    // Extract and lookup
+    async function extractAndLookup() {
+      if (!imageBase64) return;
+      
+      const btn = document.getElementById('extractBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Extracting...';
+      setStatus('Step 1/2: Reading screenshot...');
+      
+      try {
+        // Step 1: Extract from screenshot
+        const screenshotData = await extractFromScreenshot();
+        
+        if (!screenshotData) {
+          throw new Error('Could not read screenshot');
+        }
+        
+        // Apply screenshot data
+        Object.keys(screenshotData).forEach(key => {
+          if (screenshotData[key]) {
+            data[key] = screenshotData[key];
+            fieldSource[key] = 'screenshot';
+          }
+        });
+        
+        // Normalize (generate maps links, etc.)
+        normalizeData();
+        renderFields();
+        
+        // Step 2: Lookup missing
+        const missingCount = FIELDS.filter(f => !data[f.key]).length;
+        if (missingCount > 0 && (data.name || data.addressEnglish)) {
+          btn.innerHTML = '<span class="spinner"></span> Looking up...';
+          setStatus(`Step 2/2: Finding ${missingCount} missing fields...`);
+          
+          const lookupData = await lookupMissingInfo();
+          
+          if (lookupData) {
+            Object.keys(lookupData).forEach(key => {
+              if (lookupData[key] && !data[key]) {
+                data[key] = lookupData[key];
+                fieldSource[key] = 'lookup';
+              }
+            });
+            normalizeData();
+            renderFields();
+          }
+        }
+        
+        const filled = FIELDS.filter(f => data[f.key]).length;
+        setStatus(`Done! Filled ${filled}/${FIELDS.length} fields.`, 'success');
+        
+      } catch (err) {
+        setStatus('Error: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '🔍 Extract & Lookup';
+      }
+    }
+    
+    async function extractFromScreenshot() {
+      const prompt = `Analyze this screenshot and extract venue information.
+
+Return a JSON object with these keys (use "" if not found):
+- city, area, name, recommendedBy, primaryType, secondaryType, subtype
+- cost: Use "$", "$$", or "$$$" only
+- description, addressEnglish, addressLocal
+- phone: With country code, NO + symbol (e.g., "82 2-1234-5678")
+- googleMapsLink, naverMapsLink, instagram
+- website: Full URL only - ignore shortened links like "lin.ee"
+- openingHours: Format as "M-F: 18:00-01:00" - only OPEN days, use M/T/W/Th/F/Sat/Sun
+- notes, bookingLink
+
+Return ONLY valid JSON.`;
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: 'image/png', data: imageBase64 } },
+              { type: 'text', text: prompt }
+            ]
+          }]
+        })
+      });
+
+      const result = await response.json();
+      const text = result.content?.[0]?.text || '';
+      const match = text.match(/\{[\s\S]*\}/);
+      return match ? JSON.parse(match[0]) : null;
+    }
+    
+    async function lookupMissingInfo() {
+      const prompt = `Find information about this venue:
+Name: ${data.name || 'Unknown'}
+City: ${data.city || 'Unknown'}
+Address: ${data.addressEnglish || data.addressLocal || 'Unknown'}
+
+Return JSON with ONLY missing fields:
+- addressEnglish, addressLocal, phone (no + symbol), openingHours (M/T/W/Th/F/Sat/Sun: HH:MM-HH:MM, only open days)
+- primaryType, secondaryType, subtype, cost ($, $$, $$$), description
+- instagram, website (full URLs only), bookingLink, notes
+
+Return ONLY valid JSON.`;
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const result = await response.json();
+      const textBlocks = result.content?.filter(b => b.type === 'text') || [];
+      const text = textBlocks.map(b => b.text).join('\n');
+      const match = text.match(/\{[\s\S]*\}/);
+      return match ? JSON.parse(match[0]) : null;
+    }
+    
+    function normalizeData() {
+      // Remove + from phone
+      if (data.phone) {
+        data.phone = data.phone.replace(/^\+/, '');
+      }
+      
+      // Generate Google Maps link
+      if (!data.googleMapsLink && (data.name || data.addressEnglish)) {
+        const q = encodeURIComponent([data.name, data.addressEnglish, data.city].filter(Boolean).join(' '));
+        data.googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${q}`;
+      }
+      
+      // Generate Naver Maps link for Korean venues
+      if (!data.naverMapsLink && data.city === 'Seoul' && (data.name || data.addressLocal)) {
+        const q = encodeURIComponent([data.name, data.addressLocal].filter(Boolean).join(' '));
+        data.naverMapsLink = `https://map.naver.com/v5/search/${q}`;
+      }
+    }
+    
+    // Copy to clipboard
+    async function copyToClipboard() {
+      const row = FIELDS.map(f => data[f.key] || '').join('\t');
+      const btn = document.getElementById('copyBtn');
+      
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(row);
+          btn.innerHTML = '✓ Copied!';
+          setTimeout(() => btn.innerHTML = '📋 Copy', 2000);
+          return;
+        }
+      } catch (err) {}
+      
+      // Fallback
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = row;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.innerHTML = '✓ Copied!';
+        setTimeout(() => btn.innerHTML = '📋 Copy', 2000);
+      } catch (err) {
+        // Show manual copy
+        document.getElementById('copyText').value = row;
+        document.getElementById('copyFallback').classList.remove('hidden');
+      }
+    }
+    
+    // Save to Google Sheets
+    async function saveToSheets() {
+      const webhookUrl = document.getElementById('webhookUrl').value;
+      
+      if (!webhookUrl) {
+        setStatus('Please set your Google Apps Script URL in Settings', 'error');
+        document.getElementById('settingsPanel').classList.remove('hidden');
+        return;
+      }
+      
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Saving...';
+      
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          mode: 'no-cors', // Required for Apps Script
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'addVenue',
+            data: FIELDS.map(f => data[f.key] || '')
+          })
+        });
+        
+        // no-cors means we can't read the response, but if it didn't throw, assume success
+        btn.innerHTML = '✓ Saved!';
+        setStatus('Venue saved to Google Sheets!', 'success');
+        
+        setTimeout(() => {
+          btn.innerHTML = '💾 Save to Sheets';
+          btn.disabled = false;
+        }, 2000);
+        
+      } catch (err) {
+        setStatus('Error saving: ' + err.message, 'error');
+        btn.innerHTML = '💾 Save to Sheets';
+        btn.disabled = false;
+      }
+    }
+    
+    // Settings
+    function toggleSettings() {
+      document.getElementById('settingsPanel').classList.toggle('hidden');
+    }
+    
+    function saveSettings() {
+      const url = document.getElementById('webhookUrl').value;
+      localStorage.setItem('venueWebhookUrl', url);
+    }
+    
+    function loadSettings() {
+      const url = localStorage.getItem('venueWebhookUrl');
+      if (url) {
+        document.getElementById('webhookUrl').value = url;
+      }
+    }
+    
+    // Start
+    init();
+  </script>
+</body>
+</html>
